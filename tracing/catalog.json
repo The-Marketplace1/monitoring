@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "tracing",
+  "implementation_status": "validated_provider_neutral_contract",
+  "deployment_status": "not_deployed",
+  "request_chain": ["Marketplace", "Service", "Instance", "Request", "Trace", "Error"],
+  "service_to_service": {"required": true, "boundary": "API Gateway to downstream service spans", "ownership": "emitting services own spans; monitoring only collects and correlates them"},
+  "correlation_fields": ["request_id", "correlation_id", "trace_id", "span_id"],
+  "entries": [
+    {"id": "otlp-configuration", "domain": "configuration", "signals": ["traces"], "protocols": ["otlp-http", "otlp-grpc"], "resource_attributes": ["service.name", "service.version", "deployment.environment.name", "service.instance.id", "cloud.region"], "span_attributes": ["http.request.method", "http.route", "http.response.status_code", "server.address", "error.type"]},
+    {"id": "adaptive-sampling", "domain": "sampling", "signals": ["traces"], "strategy": "parent-based-trace-id-ratio", "default_ratio": 0.1, "error_ratio": 1.0, "slow_trace_threshold_ms": 1000, "preserve_trace_on": ["error", "payment failure", "authentication failure", "security anomaly"]},
+    {"id": "w3c-propagation", "domain": "propagation", "signals": ["traces"], "propagators": ["tracecontext", "baggage"], "reject_unknown_headers": true, "cross_service_requirement": "forward context from API Gateway through every downstream request"},
+    {"id": "trace-log-correlation", "domain": "correlation", "signals": ["traces", "logs"], "fields": ["request_id", "correlation_id", "trace_id", "span_id"], "required_for": ["error", "payment", "authentication", "location", "notification"], "missing_context_action": "record correlation_gap=true without inventing identifiers"}
+  ]
+}
+

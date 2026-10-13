@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "dashboards",
+  "implementation_status": "validated_provider_neutral_contract",
+  "deployment_status": "not_deployed",
+  "provider": null,
+  "query_contract": "Panels refer to metric, recording-rule, or SLO identifiers; a selected provider adapter must translate these references.",
+  "entries": [
+    {"id":"platform-overview","domain":"platform","signals":["metrics","logs","traces"],"title":"Platform overview","owner":"platform-on-call","refresh_seconds":30,"variables":["environment","region","service"],"panels":[
+      {"name":"availability","purpose":"Compare service request success with the availability objective.","metric_refs":["marketplace:availability:ratio5m"],"aggregation":"ratio","window":"5m","unit":"ratio","group_by":["service.name","deployment.environment.name"]},
+      {"name":"latency","purpose":"Find high-latency services and compare them with the latency objective.","metric_refs":["marketplace:latency:p95_5m"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["service.name","deployment.environment.name"]},
+      {"name":"error budget","purpose":"Show the remaining objective budget; calculate from valid and bad request events.","metric_refs":["error-budget-policy"],"aggregation":"error-budget","window":"30d","unit":"ratio","group_by":["service.name","deployment.environment.name"]},
+      {"name":"service errors","purpose":"Find services with increasing classified failures.","metric_refs":["marketplace:errors:rate5m"],"aggregation":"rate","window":"5m","unit":"errors_per_second","group_by":["service.name","deployment.environment.name"]}
+    ]},
+    {"id":"api-gateway-overview","domain":"api-gateway","signals":["metrics","traces"],"title":"API gateway","owner":"api-gateway-on-call","refresh_seconds":30,"variables":["environment","region","route"],"panels":[
+      {"name":"route traffic","purpose":"Identify request-volume changes by bounded route and response class.","metric_refs":["http.server.request.count"],"aggregation":"rate","window":"5m","unit":"requests_per_second","group_by":["http.route","http.response.status_code"]},
+      {"name":"gateway latency","purpose":"Compare route latency with the request objective.","metric_refs":["marketplace:latency:p95_5m"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["http.route"]},
+      {"name":"upstream failures","purpose":"Separate upstream dependency failures from gateway request errors.","metric_refs":["marketplace.service.errors"],"aggregation":"rate","window":"5m","unit":"errors_per_second","filters":{"operation":"upstream"},"group_by":["dependency.name","error_code"]},
+      {"name":"saturation","purpose":"Show gateway worker or connection-pool utilization against capacity.","metric_refs":["marketplace.gateway.saturation"],"aggregation":"latest","window":"5m","unit":"ratio","group_by":["resource","region"]}
+    ]},
+    {"id":"auth-overview","domain":"auth","signals":["metrics","logs","traces"],"title":"Authentication","owner":"identity-on-call","refresh_seconds":30,"variables":["environment","provider","region"],"panels":[
+      {"name":"attempts","purpose":"Show aggregate authentication attempt volume by bounded result.","metric_refs":["marketplace.security.authentication.attempts"],"aggregation":"rate","window":"5m","unit":"attempts_per_second","group_by":["provider","status"]},
+      {"name":"authentication failures","purpose":"Detect failures by safe reason without exposing credentials or account identifiers.","metric_refs":["marketplace.security.authentication.failures"],"aggregation":"rate","window":"5m","unit":"failures_per_second","group_by":["provider","reason"]},
+      {"name":"authentication latency","purpose":"Find slow authentication requests by service and route template.","metric_refs":["http.server.request.duration"],"aggregation":"p95","window":"5m","unit":"ms","filters":{"operation":"authentication"},"group_by":["service.name","provider"]},
+      {"name":"lockouts","purpose":"Monitor account-protection pressure using aggregate lockout events only.","metric_refs":["marketplace.security.authentication.lockouts"],"aggregation":"rate","window":"5m","unit":"events_per_second","group_by":["provider","reason"]}
+    ]},
+    {"id":"backend-overview","domain":"backend","signals":["metrics","traces"],"title":"Backend API","owner":"backend-on-call","refresh_seconds":30,"variables":["environment","service","operation"],"panels":[
+      {"name":"service health","purpose":"Show healthy, degraded, unavailable, and unknown service states.","metric_refs":["marketplace.service.health.status"],"aggregation":"latest","window":"5m","unit":"state_code","group_by":["service.name"]},
+      {"name":"request latency","purpose":"Identify slow operations by service and route template.","metric_refs":["marketplace:latency:p95_5m"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["service.name","http.route"]},
+      {"name":"dependency failures","purpose":"Identify downstream error classes without exposing request payloads.","metric_refs":["marketplace.service.errors"],"aggregation":"rate","window":"5m","unit":"errors_per_second","filters":{"operation":"dependency"},"group_by":["service.name","dependency.name"]},
+      {"name":"worker saturation","purpose":"Show worker and connection capacity pressure before an outage.","metric_refs":["marketplace.capacity.utilization","marketplace.worker.utilization"],"aggregation":"latest","window":"5m","unit":"ratio","group_by":["service.name","resource"]}
+    ]},
+    {"id":"payments-overview","domain":"payments","signals":["metrics","logs","traces"],"title":"Payments operations","owner":"payments-on-call","refresh_seconds":30,"variables":["environment","provider","operation"],"panels":[
+      {"name":"attempt outcomes","purpose":"Show aggregate payment outcomes without transaction identifiers or payloads.","metric_refs":["marketplace.payment.attempts"],"aggregation":"rate","window":"5m","unit":"attempts_per_second","group_by":["provider","operation","status"]},
+      {"name":"processing latency","purpose":"Find slow payment operations by provider and safe outcome.","metric_refs":["marketplace.payment.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["provider","operation"]},
+      {"name":"provider errors","purpose":"Show categorized provider failures without credentials or customer data.","metric_refs":["marketplace.payment.provider.errors"],"aggregation":"rate","window":"5m","unit":"errors_per_second","group_by":["provider","error_code"]},
+      {"name":"reconciliation lag","purpose":"Show the age of pending reconciliation work without transaction identifiers.","metric_refs":["marketplace.payment.reconciliation.lag"],"aggregation":"latest","window":"5m","unit":"s","group_by":["provider","region"]}
+    ]},
+    {"id":"notifications-overview","domain":"notifications","signals":["metrics","logs"],"title":"Notifications","owner":"notifications-on-call","refresh_seconds":30,"variables":["environment","channel","provider"],"panels":[
+      {"name":"delivery outcomes","purpose":"Compare delivered and failed aggregate outcomes by channel.","metric_refs":["marketplace.notification.sent"],"aggregation":"ratio","window":"5m","unit":"ratio","group_by":["channel","provider","status"]},
+      {"name":"delivery latency","purpose":"Find slow provider delivery without recipient or message content.","metric_refs":["marketplace.notification.delivery.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["channel","provider"]},
+      {"name":"queue depth","purpose":"Identify notification backlog without inspecting message content.","metric_refs":["marketplace.notification.queue.depth"],"aggregation":"latest","window":"5m","unit":"messages","group_by":["channel","queue"]},
+      {"name":"oldest queued age","purpose":"Identify the age of the oldest queued notification.","metric_refs":["marketplace.notification.queue.age"],"aggregation":"latest","window":"5m","unit":"s","group_by":["channel","queue"]},
+      {"name":"retries","purpose":"Show retry pressure by bounded channel and safe reason.","metric_refs":["marketplace.notification.retries"],"aggregation":"rate","window":"5m","unit":"retries_per_second","group_by":["channel","reason"]}
+    ]},
+    {"id":"realtime-overview","domain":"realtime","signals":["metrics","logs","traces"],"title":"Realtime","owner":"realtime-on-call","refresh_seconds":15,"variables":["environment","transport","region"],"panels":[
+      {"name":"connections","purpose":"Show active connections by transport and region, without account labels.","metric_refs":["marketplace.realtime.connections"],"aggregation":"latest","window":"1m","unit":"connections","group_by":["transport","region"]},
+      {"name":"event latency","purpose":"Show publish-to-delivery latency without recording event payloads.","metric_refs":["marketplace.realtime.message.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["transport","region"]},
+      {"name":"disconnects","purpose":"Identify unexpected connection losses by bounded reason.","metric_refs":["marketplace.realtime.disconnects"],"aggregation":"rate","window":"5m","unit":"disconnects_per_second","filters":{"reason":"unexpected"},"group_by":["transport","region"]},
+      {"name":"delivery failures","purpose":"Show delivery and subscription failures by safe reason.","metric_refs":["marketplace.realtime.delivery.failures","marketplace.realtime.subscription.failures"],"aggregation":"rate","window":"5m","unit":"failures_per_second","group_by":["transport","region"]}
+    ]},
+    {"id":"communication-overview","domain":"communication","signals":["metrics","logs"],"title":"Communication","owner":"communication-on-call","refresh_seconds":30,"variables":["environment","provider","channel"],"panels":[
+      {"name":"message throughput","purpose":"Show accepted communication events by channel without private content.","metric_refs":["marketplace.communication.messages"],"aggregation":"rate","window":"5m","unit":"messages_per_second","group_by":["channel","provider"]},
+      {"name":"delivery outcomes","purpose":"Compare aggregate provider delivery outcomes.","metric_refs":["marketplace.communication.delivery"],"aggregation":"ratio","window":"5m","unit":"ratio","group_by":["channel","provider","status"]},
+      {"name":"provider failures","purpose":"Show categorized provider failures without destination identifiers.","metric_refs":["marketplace.communication.provider.errors"],"aggregation":"rate","window":"5m","unit":"errors_per_second","group_by":["provider","channel","error_code"]},
+      {"name":"provider latency","purpose":"Show provider response latency by channel.","metric_refs":["marketplace.communication.provider.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["provider","channel"]}
+    ]},
+    {"id":"location-overview","domain":"location","signals":["metrics","traces"],"title":"Location pipeline","owner":"location-on-call","refresh_seconds":15,"variables":["environment","provider","region"],"panels":[
+      {"name":"update freshness","purpose":"Show age of the newest processed update without coordinates.","metric_refs":["marketplace.location.update_age"],"aggregation":"latest","window":"1m","unit":"s","group_by":["provider","region"]},
+      {"name":"processing failures","purpose":"Find failed location processing by safe error class.","metric_refs":["marketplace.location.processing.failures"],"aggregation":"rate","window":"5m","unit":"failures_per_second","group_by":["provider","error_code"]},
+      {"name":"delivery latency","purpose":"Show event delivery latency without route or location payload.","metric_refs":["marketplace.location.delivery.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["transport","region"]},
+      {"name":"lookup latency","purpose":"Find slow bounded geospatial lookups without coordinates or query values.","metric_refs":["marketplace.location.lookup.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["provider","region"]}
+    ]},
+    {"id":"database-overview","domain":"database","signals":["metrics","logs"],"title":"PostgreSQL/PostGIS","owner":"data-platform-on-call","refresh_seconds":30,"variables":["environment","cluster","database"],"panels":[
+      {"name":"availability","purpose":"Show database health state from bounded read-only probes.","metric_refs":["marketplace.database.health"],"aggregation":"latest","window":"1m","unit":"state_code","group_by":["db.system","server.address"]},
+      {"name":"query latency","purpose":"Show client operation latency by safe operation class, not SQL text.","metric_refs":["db.client.operation.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["db.system","operation"]},
+      {"name":"connection utilization","purpose":"Show pool and server connection usage without application data.","metric_refs":["db.client.connections.usage"],"aggregation":"latest","window":"1m","unit":"connections","group_by":["db.system","state"]},
+      {"name":"replication and backup age","purpose":"Show replication delay and backup age as separate series using the same time unit.","metric_refs":["marketplace.database.replication.lag","marketplace.database.backup.age"],"aggregation":"latest","window":"5m","unit":"s","group_by":["db.system","replica_role"]}
+    ]},
+    {"id":"redis-overview","domain":"redis","signals":["metrics","logs"],"title":"Redis","owner":"data-platform-on-call","refresh_seconds":15,"variables":["environment","cluster","node"],"panels":[
+      {"name":"availability","purpose":"Show Redis health from read-only dependency probes.","metric_refs":["marketplace.redis.health"],"aggregation":"latest","window":"1m","unit":"state_code","group_by":["cluster","region"]},
+      {"name":"memory utilization","purpose":"Compare Redis memory use with configured capacity.","metric_refs":["marketplace.redis.memory.utilization"],"aggregation":"latest","window":"1m","unit":"ratio","group_by":["cluster","node"]},
+      {"name":"command latency","purpose":"Show command latency by bounded command class, never key or value.","metric_refs":["marketplace.redis.command.duration"],"aggregation":"p95","window":"5m","unit":"ms","group_by":["cluster","command_class"]},
+      {"name":"evictions","purpose":"Track cache eviction count without reading keys or values.","metric_refs":["redis.evicted.keys"],"aggregation":"rate","window":"5m","unit":"keys_per_second","group_by":["cluster","node"]},
+      {"name":"replication lag","purpose":"Track Redis replication delay by replica role.","metric_refs":["marketplace.redis.replication.lag"],"aggregation":"latest","window":"5m","unit":"s","group_by":["cluster","replica_role"]}
+    ]},
+    {"id":"infrastructure-overview","domain":"infrastructure","signals":["metrics","logs"],"title":"Infrastructure","owner":"platform-on-call","refresh_seconds":30,"variables":["environment","region","cluster"],"panels":[
+      {"name":"compute utilization","purpose":"Show CPU and memory headroom by host and region.","metric_refs":["host.cpu.utilization","host.memory.utilization"],"aggregation":"latest","window":"1m","unit":"ratio","group_by":["host.name","cloud.region"]},
+      {"name":"disk throughput","purpose":"Show disk IO volume by device and direction.","metric_refs":["host.disk.io"],"aggregation":"rate","window":"5m","unit":"bytes_per_second","group_by":["host.name","device","direction"]},
+      {"name":"network errors","purpose":"Show packet error rate by host interface and direction.","metric_refs":["host.network.errors"],"aggregation":"rate","window":"5m","unit":"packets_per_second","group_by":["host.name","interface","direction"]},
+      {"name":"container restarts","purpose":"Identify restart increases by bounded workload identity.","metric_refs":["container.restarts"],"aggregation":"rate","window":"15m","unit":"restarts_per_second","group_by":["service.name","workload"]}
+    ]},
+    {"id":"security-overview","domain":"security","signals":["metrics","logs","traces"],"title":"Security controls","owner":"security-on-call","refresh_seconds":30,"variables":["environment","service","region"],"panels":[
+      {"name":"authentication failures","purpose":"Show aggregate authentication failures without credential or account identifiers.","metric_refs":["marketplace.security.authentication.failures"],"aggregation":"rate","window":"5m","unit":"failures_per_second","group_by":["service.name","reason"]},
+      {"name":"authorization denials","purpose":"Show denied actions by bounded safe reason.","metric_refs":["marketplace.security.authorization.denied"],"aggregation":"rate","window":"5m","unit":"denials_per_second","group_by":["service.name","action","reason"]},
+      {"name":"rate limits","purpose":"Show throttling pressure by bounded policy, not client identity.","metric_refs":["marketplace.security.rate_limit.events"],"aggregation":"rate","window":"5m","unit":"events_per_second","group_by":["service.name","policy"]},
+      {"name":"control failures","purpose":"Identify control failures and anomaly counts by safe control category.","metric_refs":["marketplace.security.control.failures","marketplace.security.anomalies"],"aggregation":"rate","window":"5m","unit":"events_per_second","group_by":["service.name","control","severity"]}
+    ]}
+  ]
+}
+

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "integrations",
+  "platform_status": "awaiting_platform_selection",
+  "deployment_status": "not_connected",
+  "integration_policy": {"provider_isolation": "provider adapters map to the common monitoring model and must not leak provider-specific concerns into it", "access": "least privilege and read-only wherever possible", "transport": "TLS required in transit", "credentials": "runtime secret manager only; never committed or logged", "environment_separation": ["development", "staging", "production"], "audit": "record integration configuration changes and access", "direct_database_access": "no private application database access; telemetry exporters and documented read-only health probes only"},
+  "entries": [
+    {"id": "aws-telemetry", "domain": "aws", "signals": ["metrics", "logs", "traces"], "protocol": "opentelemetry", "sources": ["cloudwatch", "ecs", "rds", "elasticache"], "credentials": "runtime-injected-from-secret-manager", "access": "least-privilege-read-only", "adapter_boundary": "candidate source adapter emits the common Marketplace telemetry model", "private_application_database_access": false, "status": "awaiting_platform_selection", "connected": false},
+    {"id": "redis-telemetry", "domain": "redis", "signals": ["metrics", "logs"], "protocol": "exporter-or-native-metrics", "required_signals": ["memory", "evictions", "commands", "replication", "availability"], "access": "read-only exporter and health checks", "adapter_boundary": "Redis metrics mapped to common dependency health and metric conventions", "application_ownership": false, "status": "awaiting_platform_selection", "connected": false},
+    {"id": "postgresql-telemetry", "domain": "postgresql", "signals": ["metrics", "logs"], "protocol": "exporter-or-native-metrics", "required_signals": ["connections", "locks", "latency", "replication", "storage", "availability", "backup"], "access": "read-only exporter and health checks; no application schema access", "adapter_boundary": "PostgreSQL/PostGIS adapter emits database and spatial-operation health metrics", "schema_ownership": false, "status": "awaiting_platform_selection", "connected": false},
+    {"id": "realtime-telemetry", "domain": "realtime", "signals": ["metrics", "logs", "traces"], "protocol": "otlp", "required_signals": ["connections", "messages", "disconnects", "fanout", "delivery_latency", "subscription_failures"], "access": "consume telemetry only", "adapter_boundary": "realtime transport emits connection and delivery observations", "transport_ownership": false, "private_payload_collection_allowed": false, "status": "awaiting_platform_selection", "connected": false},
+    {"id": "alerting-routing", "domain": "alerting", "signals": ["metrics", "logs"], "protocol": "webhook-or-native-integration", "destinations": ["incident-alerts", "platform-logs"], "credentials": "runtime-injected-from-secret-manager", "access": "send alerts only; no control-plane actions", "adapter_boundary": "provider payload translated from normalized Marketplace alert contract", "secure_transport": "TLS", "status": "awaiting_platform_selection", "connected": false}
+  ]
+}
+

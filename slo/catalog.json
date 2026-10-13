@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "slo",
+  "implementation_status": "validated_provider_neutral_contract",
+  "deployment_status": "not_deployed",
+  "measurement_policy": "derive objectives from emitted service telemetry; keep dependency availability visible separately from service-level availability",
+  "entries": [
+    {"id":"availability-objective","domain":"availability","signals":["metrics"],"objective_type":"service-level","indicator":"successful requests / valid requests","metric_refs":["http.server.request.count"],"calculation":"count completed requests with status below 500 divided by all completed requests over the rolling window","good_events":"http.response.status_code < 500","bad_events":"http.response.status_code >= 500 or service unavailable","target":0.995,"window":"30d","dependency_treatment":"report dependency outage separately; do not hide it from the service view"},
+    {"id":"latency-objective","domain":"latency","signals":["metrics"],"objective_type":"service-level","indicator":"requests below latency threshold","metric_refs":["http.server.request.duration"],"calculation":"count requests with duration <= threshold divided by all completed requests over the rolling window","good_events":"http.server.request.duration <= 750 ms","bad_events":"http.server.request.duration > 750 ms or request timeout","threshold_ms":750,"target":0.95,"window":"30d","dependency_treatment":"retain downstream span and dependency latency as separate dimensions"},
+    {"id":"error-budget-policy","domain":"error-budget","signals":["metrics"],"objective_type":"service-level","budget":0.005,"budget_calculation":"1 - target","remaining_budget_calculation":"max(0, 1 - observed_bad_fraction / allowed_bad_fraction)","burn_multipliers":[2,6,14],"action":"prioritize reliability work when budget is exhausted","dependency_treatment":"track dependency error budget independently and link it to affected services"},
+    {"id": "service-objective-registry", "domain": "service-objectives", "signals": ["metrics"], "objective_type": "registry", "services": ["api-gateway", "auth", "backend", "payments", "notifications", "realtime", "communication", "location"], "ownership_source": "service telemetry resource attributes", "required_dimensions": ["service.name", "service.version", "deployment.environment.name", "region"], "dependency_dimensions": ["dependency.name", "dependency.type", "dependency.status"]}
+  ]
+}
+

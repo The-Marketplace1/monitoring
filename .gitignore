@@ -1,0 +1,12 @@
+# Python monitoring validation
+__pycache__/
+*.py[cod]
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.env
+

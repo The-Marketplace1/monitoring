@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "rules",
+  "implementation_status": "validated_provider_neutral_contract",
+  "deployment_status": "not_deployed",
+  "entries": [
+    {"id":"availability-recording","domain":"availability","signals":["metrics"],"reusable":true,"input_metrics":["http.server.request.count"],"filters":{"good":"http.response.status_code < 500","valid":"all completed requests"},"calculation":"good request count divided by valid request count","output":"marketplace:availability:ratio5m","unit":"ratio","window":"5m","labels":["service.name","deployment.environment.name","region"],"use":"service-level availability objective and outage alerting"},
+    {"id":"latency-recording","domain":"latency","signals":["metrics"],"reusable":true,"input_metrics":["http.server.request.duration"],"calculation":"95th percentile of request duration","output":"marketplace:latency:p95_5m","unit":"ms","window":"5m","labels":["service.name","http.route","deployment.environment.name"],"use":"latency objective and high-latency alerting"},
+    {"id":"error-recording","domain":"errors","signals":["metrics"],"reusable":true,"input_metrics":["http.server.request.count"],"filters":{"bad":"http.response.status_code >= 500"},"calculation":"rate of bad request events grouped by service","output":"marketplace:errors:rate5m","unit":"errors_per_second","window":"5m","labels":["service.name","deployment.environment.name"],"use":"error-rate alerting and service diagnosis"},
+    {"id":"capacity-recording","domain":"capacity","signals":["metrics"],"reusable":true,"input_metrics":["host.cpu.utilization","host.memory.utilization","marketplace.capacity.utilization"],"calculation":"maximum utilization by service and bounded resource","output":"marketplace:capacity:max_ratio","unit":"ratio","window":"5m","labels":["service.name","resource","region"],"use":"capacity planning and saturation alerting"},
+    {"id":"security-denial-rate","domain":"security","signals":["metrics"],"reusable":true,"input_metrics":["marketplace.security.authorization.denied"],"calculation":"rate of authorization-denial events grouped by safe reason","output":"marketplace:security:denials5m","unit":"denials_per_second","window":"5m","labels":["service.name","reason","action"],"use":"security anomaly detection without user identifiers"},
+    {"id":"location-freshness","domain":"location","signals":["metrics"],"reusable":true,"input_metrics":["marketplace.location.update_age"],"calculation":"maximum observed age of the newest processed update","output":"marketplace:location:freshness","unit":"s","window":"5m","labels":["service.name","provider","region"],"use":"location pipeline and realtime delivery alerting without coordinates"},
+    {"id":"financial-failure-rate","domain":"financial","signals":["metrics"],"reusable":true,"input_metrics":["marketplace.payment.attempts"],"filters":{"bad":"status = failed","valid":"all attempts"},"calculation":"failed payment attempts divided by all payment attempts","output":"marketplace:financial:failure_ratio5m","unit":"ratio","window":"5m","labels":["service.name","provider","operation"],"use":"payment operational observation only","forbidden_scope":["payment processing","authorization decisions","financial business logic"]}
+  ]
+}
+

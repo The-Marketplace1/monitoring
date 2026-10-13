@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "logging",
+  "implementation_status": "validated_provider_neutral_contract",
+  "deployment_status": "not_deployed",
+  "structured": true,
+  "required_common_fields": ["timestamp", "service", "environment", "level", "request_id", "correlation_id", "trace_id", "operation", "status", "duration", "error_code"],
+  "prohibited_data_classes": ["passwords", "authentication tokens", "API secrets", "card and payment credentials", "private messages", "unnecessary personal information", "unnecessary precise location data"],
+  "redaction_boundary": "redact before centralized collection whenever the emitting service can do so; apply collector redaction as a mandatory defense in depth",
+  "access_control": "least privilege with environment- and role-scoped access to centralized logs",
+  "auditability": "audit access and changes to log pipeline configuration",
+  "secure_transport": "OTLP over TLS; reject insecure remote exporters",
+  "environment_separation": ["development", "staging", "production"],
+  "minimum_collection": "collect operational fields only; never retain precise customer or professional location",
+  "entries": [
+    {"id": "collection-otlp", "domain": "collection", "signals": ["logs"], "protocol": "otlp", "inputs": ["otlp-http", "otlp-grpc"], "required_fields": ["timestamp", "service", "environment", "level", "request_id", "correlation_id", "trace_id", "operation", "status", "duration", "error_code"]},
+    {"id": "parsing-structured", "domain": "parsing", "signals": ["logs"], "format": "json", "fallback": "preserve-original-body-after-redaction", "invalid_record_action": "tag-and-route", "body_policy": "structured_fields_preferred"},
+    {"id": "normalization-otel", "domain": "normalization", "signals": ["logs"], "semantic_conventions": ["service.name", "deployment.environment.name", "trace_id", "span_id"], "field_aliases": {"service": "service.name", "environment": "deployment.environment.name", "level": "severity_text", "request_id": "http.request.id"}},
+    {"id": "retention-tiering", "domain": "retention", "signals": ["logs"], "tiers": [{"name": "hot", "duration": "24h"}, {"name": "searchable", "duration": "7d"}], "policy_status": "privacy-preserving-default; data-owner approval required for extension", "deletion_policy": "automated deletion at tier expiry; no indefinite archive"},
+    {"id": "redaction-default", "domain": "redaction", "signals": ["logs"], "redact_keys": ["authorization", "cookie", "password", "secret", "token", "payment.card_number", "user.email", "location.precise"], "replacement": "[REDACTED]", "apply_before_routing": true, "fail_closed": true},
+    {"id": "routing-by-severity", "domain": "routing", "signals": ["logs"], "routes": [{"match": "severity_number >= 17", "destination": "incident-alerts"}, {"match": "true", "destination": "platform-logs"}], "routing_fields": ["service", "environment", "level", "status", "error_code"]}
+  ]
+}
+

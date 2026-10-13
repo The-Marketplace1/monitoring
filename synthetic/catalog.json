@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "synthetic",
+  "implementation_status": "validated_provider_neutral_contract",
+  "execution_status": "not_configured",
+  "deployment_status": "not_deployed",
+  "global_safety": {"identity": "dedicated synthetic test identities only", "data": "synthetic records and fixed non-production coordinates", "production_mutation": false, "real_recipient": false, "real_charge": false, "cleanup": "owner-defined cleanup or read-only verification"},
+  "entries": [
+    {"id": "api-smoke", "domain": "api", "signals": ["metrics", "traces"], "method": "GET", "target_ref": "service-owner-approved-read-only-route", "target_configuration": "runtime allow-listed service endpoint required before execution", "interval": "1m", "timeout_ms": 3000, "expected_status": 200, "test_identity": "synthetic-readonly", "data_policy": "no request body and no production mutation", "mutates_production": false},
+    {"id": "authentication-smoke", "domain": "authentication", "signals": ["metrics", "traces"], "flow": "dedicated synthetic identity authenticates and an unauthenticated request is rejected without leaking details", "interval": "5m", "timeout_ms": 5000, "test_identity": "synthetic-auth-user", "data_policy": "identity is scoped to synthetic checks and has no customer access", "mutates_production": false},
+    {"id": "booking-smoke", "domain": "booking", "signals": ["metrics", "traces"], "flow": "read-only booking availability request using synthetic route and date", "interval": "5m", "timeout_ms": 5000, "test_identity": "synthetic-readonly", "data_policy": "fixed synthetic route/date; availability read only", "mutates_production": false},
+    {"id": "payment-smoke", "domain": "payment", "signals": ["metrics", "traces"], "flow": "provider health or sandbox authorization probe", "interval": "5m", "timeout_ms": 5000, "test_identity": "synthetic-payment-user", "data_policy": "provider sandbox or health endpoint only", "mutates_production": false, "no_real_charge": true},
+    {"id": "realtime-smoke", "domain": "realtime", "signals": ["metrics", "traces"], "flow": "connect, subscribe to a synthetic channel, receive heartbeat, disconnect", "interval": "1m", "timeout_ms": 5000, "test_identity": "synthetic-realtime-user", "data_policy": "synthetic channel only; no private message content", "mutates_production": false},
+    {"id": "location-smoke", "domain": "location", "signals": ["metrics", "traces"], "flow": "bounded location lookup using fixed synthetic coordinates", "interval": "5m", "timeout_ms": 5000, "test_identity": "synthetic-readonly", "data_policy": "fixed coordinates are not tied to a person or live vehicle", "mutates_production": false},
+    {"id": "notification-smoke", "domain": "notifications", "signals": ["metrics", "traces"], "flow": "provider sandbox delivery with a synthetic destination", "interval": "5m", "timeout_ms": 5000, "test_identity": "synthetic-notification-user", "data_policy": "sandbox destination or provider test sink only", "mutates_production": false, "no_real_recipient": true}
+  ]
+}
+

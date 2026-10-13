@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "format": "marketplace.monitoring.v1",
+  "owner": "monitoring",
+  "scope": "incidents",
+  "implementation_status": "validated_provider_neutral_contract",
+  "deployment_status": "not_deployed",
+  "entries": [
+    {"id": "standard-runbook", "domain": "runbooks", "signals": ["logs", "metrics", "traces"], "steps": ["acknowledge", "scope", "inspect-dashboard", "inspect-alert", "inspect-dependency", "collect-evidence", "coordinate-owner", "mitigate-through-owner", "verify", "document"], "inspect": ["service health", "recent changes", "error and latency rates", "trace exemplars", "dependency health"], "evidence": ["dashboard", "alert", "trace", "redacted log sample", "change record"], "remediation_boundary": "monitoring may observe and coordinate; the owning service performs remediation"},
+    {"id": "service-outage-runbook", "domain": "runbooks", "signals": ["logs", "metrics", "traces"], "trigger": "service outage or readiness failure", "inspect": ["availability SLO", "readiness probes", "deployment history", "upstream and downstream spans"], "dependency": "service dependencies named by dependency.name", "evidence": ["probe result", "error-rate recording rule", "representative trace", "affected region"], "remediation_owner": "service owner from service.name", "monitoring_action": "do not modify or restart the observed service"},
+    {"id": "database-runbook", "domain": "runbooks", "signals": ["logs", "metrics", "traces"], "trigger": "PostgreSQL/PostGIS failure or connection pressure", "inspect": ["read-only health probe", "connection utilization", "query latency", "locks", "replication and backup health"], "dependency": "PostgreSQL/PostGIS", "evidence": ["health status", "safe query class", "replication lag", "storage pressure"], "remediation_owner": "data-platform owner", "monitoring_action": "do not run mutations or access application data"},
+    {"id": "redis-runbook", "domain": "runbooks", "signals": ["logs", "metrics", "traces"], "trigger": "Redis failure, eviction, or memory pressure", "inspect": ["health probe", "memory utilization", "command latency", "evictions", "replication"], "dependency": "Redis", "evidence": ["node status", "safe command metrics", "replication lag", "affected service"], "remediation_owner": "data-platform owner", "monitoring_action": "do not flush keys or change configuration"},
+    {"id": "on-call-escalation", "domain": "escalation", "signals": ["logs", "metrics"], "levels": [{"after": "10m", "target": "service-owner"}, {"after": "20m", "target": "platform-on-call"}, {"after": "40m", "target": "incident-commander"}], "paging_expectation": "page the current owner once, then escalate without duplicating pages"},
+    {"id": "severity-model", "domain": "severity", "signals": ["logs", "metrics"], "levels": ["sev1", "sev2", "sev3", "sev4"], "basis": ["customer impact", "data integrity", "scope", "duration"], "sev1": "broad outage, critical data risk, or payment safety risk", "sev2": "material degradation with a viable workaround"},
+    {"id": "response-lifecycle", "domain": "response", "signals": ["logs", "metrics", "traces"], "states": ["detected", "triaged", "mitigating", "monitoring", "resolved"], "required_fields": ["severity", "owner", "start_time", "impact", "mitigation", "dependency", "evidence"], "no_silent_changes": true},
+    {"id": "postmortem-template", "domain": "postmortems", "signals": ["logs", "metrics", "traces"], "sections": ["impact", "timeline", "detection", "root_causes", "contributing_factors", "actions", "validation", "ownership"], "blameless": true, "action_requirements": ["owner", "due_date", "verification_signal"]}
+  ]
+}
+

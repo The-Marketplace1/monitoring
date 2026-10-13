@@ -1,0 +1,112 @@
+name: marketplace-monitoring-validation
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Required for git diff HEAD^ to work reliably
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint and format tool
+        run: python -m pip install --disable-pip-version-check ruff>=0.3.0
+
+      - name: Lint Python
+        run: ruff check scripts tests
+
+      - name: Check Python formatting
+        run: ruff format --check --line-length 120 scripts tests
+
+      - name: Validate catalogs and repository contract
+        run: python scripts/validate_repository.py
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Compile Python
+        run: python -m compileall -q scripts tests
+
+      - name: Check whitespace
+        run: |
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            git diff --check HEAD^ HEAD
+          else
+            git diff --check
+          fi
+
+      - name: Check for committed secret-shaped assignments
+        run: |
+          python - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+
+          pattern = re.compile(
+              r"(password|secret|token|api[_-]?key|private[_-]?key)"
+              r"\s*[:=]\s*\S+",
+              re.IGNORECASE,
+          )
+          monitoring_paths = [
+              ".env.example", ".dockerignore", ".gitignore", "LICENSE", "README.md",
+              ".github/workflows/monitoring-validation.yml", "alerts", "dashboards",
+              "docker", "docs", "health-checks", "incidents", "integrations",
+              "logging", "metrics", "rules", "scripts/monitoring.py",
+              "scripts/validate_repository.py", "slo", "synthetic", "tests", "tracing",
+          ]
+          
+          # Filter paths that actually exist to prevent git ls-files from crashing
+          existing_paths = [p for p in monitoring_paths if Path(p).exists()]
+          
+          if existing_paths:
+              tracked_files = subprocess.check_output(
+                  ["git", "ls-files", "-z", "--"] + existing_paths
+              ).decode().split("\0")
+              
+              for filename in filter(None, tracked_files):
+                  path = Path(filename)
+                  if path.name == ".env.example":
+                      continue
+                  try:
+                      text = path.read_text(encoding="utf-8")
+                  except UnicodeDecodeError:
+                      continue
+                  if pattern.search(text):
+                      raise SystemExit(f"Potential secret-shaped assignment found in {path}")
+          PY
+
+      - name: Build validation image
+        run: docker build --file docker/Dockerfile --tag marketplace-monitoring-validation:ci .
+
+      - name: Validate catalogs inside image
+        run: docker run --rm --network none --entrypoint python marketplace-monitoring-validation:ci scripts/validate_repository.py
+
+      - name: Run tests inside image
+        run: docker run --rm --network none --entrypoint python marketplace-monitoring-validation:ci -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Lint Python inside image
+        run: docker run --rm --network none --entrypoint ruff marketplace-monitoring-validation:ci check scripts tests
+
+      - name: Check Python formatting inside image
+        run: docker run --rm --network none --entrypoint ruff marketplace-monitoring-validation:ci format --check --line-length 120 scripts tests
+
+      - name: Compile Python inside image
+        run: docker run --rm --network none --entrypoint python marketplace-monitoring-validation:ci -m compileall -q scripts tests
+
+      - name: Smoke-test one-shot container startup and clean exit
+        run: docker run --rm --network none marketplace-monitoring-validation:ci
+
