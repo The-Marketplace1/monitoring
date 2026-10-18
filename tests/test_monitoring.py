@@ -2,9 +2,9 @@ import json
 import shutil
 import tempfile
 import unittest
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 from scripts.monitoring import (
     CATALOGS,
